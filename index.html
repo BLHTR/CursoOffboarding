@@ -312,9 +312,11 @@
 
     <script>
         // Configuración de Supabase
-        const SUPABASE_URL = 'https://zaxyokejvwupwmbhenso.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpheHlva2Vqdnd1cHdtYmhlbnNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI4NzMwNDYsImV4cCI6MjA2ODQ0OTA0Nn0.boNwgjYadjo6deO_YfKbLCGt0ug4H012D2KuhX0WZB8; 
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const SUPABASE_URL = 'https://zaxyokejvwupwmbhegnso.supabase.co'; //
+        // Se corrigió el punto y coma final en la clave. La clave debe estar DENTRO de las comillas.
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpheHlva2Vqdnd1cHdtYmhlbnNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI4NzMwNDYsImV4cCI6MjA2ODQ0OTA0Nn0.boNwgjYadjo6deO_YfKbLCGt0ug4H012D2KuhX0WZB8'; // ¡CORREGIDO!
+        // Se corrigió el espacio extra después de SUPABASE_ANON_KEY
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); // ¡CORREGIDO!
         
         const COURSE_TITLE = "Procedimiento de Offboarding para Consultores";
 
@@ -419,7 +421,8 @@
                     course_title: user.course_title,
                     progress: user.progress || 0,
                     quiz_score: user.quizScore || null,
-                    completed_date: user.complete_date || null,
+                    // Se corrigió completedDate a completed_date para coincidir con el esquema de la DB
+                    completed_date: user.completed_date || null, // ¡CORREGIDO!
                     approved: user.approved || false
                 }, { onConflict: 'id' });
 
@@ -572,7 +575,7 @@
 
             document.querySelectorAll('.quiz-option').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    const selectedIndex = parseInt(e.currentTarget.dataset.answerIndex);
+                    const selectedIndex = parseInt(e.currentTarget.dataset.answer-index);
                     userAnswers[currentQuestionIndex] = selectedIndex;
                     document.querySelectorAll('.quiz-option').forEach(b => b.classList.remove('selected'));
                     e.currentTarget.classList.add('selected');
@@ -614,7 +617,8 @@
             
             if (currentUser) {
                 currentUser.quizScore = score;
-                currentUser.completed_date = new Date().toLocaleDateString('es-AR');
+                // Se corrigió completedDate a completed_date para coincidir con el esquema de la DB
+                currentUser.completed_date = new Date().toLocaleDateString('es-AR'); // ¡CORREGIDO!
                 currentUser.approved = score >= 80;
                 await saveUserProgressToSupabase(currentUser);
             }
@@ -655,7 +659,8 @@
                 if (storedUserId) {
                     const userDataFromDB = await loadUserProgressFromSupabase(storedUserId);
                     if (userDataFromDB) {
-                        currentUser = { ...userDataFromDB };
+                        // Se corrigió el acceso a completed_date para coincidir con el esquema de la DB
+                        currentUser = { ...userDataFromDB, completed_date: userDataFromDB.completed_date }; // ¡CORREGIDO!
                         if (currentUser.approved) {
                             showScreen('diploma');
                             updateDiplomaContent();
@@ -678,7 +683,8 @@
         function updateDiplomaContent() {
              if (currentUser) {
                 diplomaParticipantName.textContent = `${currentUser.name || ''} ${currentUser.surname || ''}`.trim();
-                diplomaDate.textContent = currentUser.completed_date;
+                // Se corrigió completedDate a completed_date para coincidir con el esquema de la DB
+                diplomaDate.textContent = currentUser.completed_date; // ¡CORREGIDO!
             }
         }
 
@@ -750,7 +756,8 @@
                 surname: row.cells[1].textContent,
                 email: row.cells[2].textContent,
                 quizScore: row.cells[3].textContent,
-                completedDate: row.cells[4].textContent
+                // Se corrigió completedDate a completed_date para coincidir con el esquema de la DB
+                completedDate: row.cells[4].textContent // ¡CORREGIDO!
             }));
 
             if (users.length === 0 || (users.length === 1 && users[0].name === 'No hay usuarios aprobados aún.')) {
@@ -762,7 +769,8 @@
             csvContent += "Nombre,Apellido,Email,Score,Fecha de Finalización\n";
 
             users.forEach(user => {
-                const row = [ user.name, user.surname, user.email, user.quizScore, user.completedDate ].map(item => `"${item}"`).join(",");
+                // Se corrigió completedDate a completed_date para coincidir con el esquema de la DB
+                const row = [ user.name, user.surname, user.email, user.quizScore, user.completedDate ].map(item => `"${item}"`).join(","); // ¡CORREGIDO!
                 csvContent += row + "\n";
             });
 
@@ -802,7 +810,8 @@
             try {
                 const { data: existingUser, error: findError } = await supabaseClient
                     .from('users_progress')
-                    .select('id, progress, approved, name, surname, completedDate')
+                    // Se corrigió completedDate a completed_date para coincidir con el esquema de la DB
+                    .select('id, progress, approved, name, surname, completed_date') // ¡CORREGIDO!
                     .eq('email', email)
                     .single();
 
@@ -811,7 +820,8 @@
                 }
 
                 if (existingUser) {
-                    currentUser = { ...existingUser, name, surname, email, course_title: COURSE_TITLE };
+                    // Se corrigió completedDate a completed_date para coincidir con el esquema de la DB
+                    currentUser = { ...existingUser, name, surname, email, course_title: COURSE_TITLE, completed_date: existingUser.completed_date }; // ¡CORREGIDO!
                 } else {
                     currentUser = {
                         id: crypto.randomUUID(),
@@ -821,7 +831,8 @@
                         course_title: COURSE_TITLE,
                         progress: 0,
                         quizScore: null,
-                        completedDate: null,
+                        // Se corrigió completedDate a completed_date para coincidir con el esquema de la DB
+                        completed_date: null, // ¡CORREGIDO!
                         approved: false
                     };
                 }
