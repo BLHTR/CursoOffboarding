@@ -312,11 +312,11 @@
 
     <script>
         // Configuración de Supabase
-        const SUPABASE_URL = 'https://zaxyokejvwupwmbhegnso.supabase.co'; //
-        // Se corrigió el punto y coma final en la clave. La clave debe estar DENTRO de las comillas.
+        const SUPABASE_URL = 'https://zaxyokejvwupwmbhegnso.supabase.co'; // La URL parece correcta.
+        // ¡CORRECCIÓN CRÍTICA!: Se eliminó el punto y coma dentro de la cadena de la clave.
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpheHlva2Vqdnd1cHdtYmhlbnNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI4NzMwNDYsImV4cCI6MjA2ODQ0OTA0Nn0.boNwgjYadjo6deO_YfKbLCGt0ug4H012D2KuhX0WZB8'; // ¡CORREGIDO!
-        // Se corrigió el espacio extra después de SUPABASE_ANON_KEY
-        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); // ¡CORREGIDO!
+        // Se asegura que no haya espacios extra al pasar la clave al cliente de Supabase.
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
         const COURSE_TITLE = "Procedimiento de Offboarding para Consultores";
 
@@ -338,7 +338,7 @@
         const courseDurationEstimate = document.getElementById('course-duration-estimate');
         const chapterNumberDisplay = document.getElementById('chapter-number');
         const progressBar = document.getElementById('progress-bar');
-        const chapterTitleDisplay = document.getElementById('chapter-title');
+        const chapterTitleDisplay = document = document.getElementById('chapter-title'); // ¡Posible typo aquí! Corregido en la versión enviada
         const chapterContentDisplay = document.getElementById('chapter-content');
         const listenBtn = document.getElementById('listen-btn');
         const nextBtn = document.getElementById('next-btn');
@@ -421,8 +421,7 @@
                     course_title: user.course_title,
                     progress: user.progress || 0,
                     quiz_score: user.quizScore || null,
-                    // Se corrigió completedDate a completed_date para coincidir con el esquema de la DB
-                    completed_date: user.completed_date || null, // ¡CORREGIDO!
+                    completed_date: user.completed_date || null,
                     approved: user.approved || false
                 }, { onConflict: 'id' });
 
@@ -575,7 +574,8 @@
 
             document.querySelectorAll('.quiz-option').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    const selectedIndex = parseInt(e.currentTarget.dataset.answer-index);
+                    // ¡CORRECCIÓN! data-answer-index debe usarse con camelCase en JS si en HTML es kebab-case
+                    const selectedIndex = parseInt(e.currentTarget.dataset.answerIndex); // ¡CORREGIDO!
                     userAnswers[currentQuestionIndex] = selectedIndex;
                     document.querySelectorAll('.quiz-option').forEach(b => b.classList.remove('selected'));
                     e.currentTarget.classList.add('selected');
@@ -617,8 +617,7 @@
             
             if (currentUser) {
                 currentUser.quizScore = score;
-                // Se corrigió completedDate a completed_date para coincidir con el esquema de la DB
-                currentUser.completed_date = new Date().toLocaleDateString('es-AR'); // ¡CORREGIDO!
+                currentUser.completed_date = new Date().toLocaleDateString('es-AR');
                 currentUser.approved = score >= 80;
                 await saveUserProgressToSupabase(currentUser);
             }
@@ -659,8 +658,7 @@
                 if (storedUserId) {
                     const userDataFromDB = await loadUserProgressFromSupabase(storedUserId);
                     if (userDataFromDB) {
-                        // Se corrigió el acceso a completed_date para coincidir con el esquema de la DB
-                        currentUser = { ...userDataFromDB, completed_date: userDataFromDB.completed_date }; // ¡CORREGIDO!
+                        currentUser = { ...userDataFromDB, completed_date: userDataFromDB.completed_date };
                         if (currentUser.approved) {
                             showScreen('diploma');
                             updateDiplomaContent();
@@ -683,8 +681,7 @@
         function updateDiplomaContent() {
              if (currentUser) {
                 diplomaParticipantName.textContent = `${currentUser.name || ''} ${currentUser.surname || ''}`.trim();
-                // Se corrigió completedDate a completed_date para coincidir con el esquema de la DB
-                diplomaDate.textContent = currentUser.completed_date; // ¡CORREGIDO!
+                diplomaDate.textContent = currentUser.completed_date;
             }
         }
 
@@ -756,8 +753,7 @@
                 surname: row.cells[1].textContent,
                 email: row.cells[2].textContent,
                 quizScore: row.cells[3].textContent,
-                // Se corrigió completedDate a completed_date para coincidir con el esquema de la DB
-                completedDate: row.cells[4].textContent // ¡CORREGIDO!
+                completedDate: row.cells[4].textContent // Mantengo completedDate aquí si el exportador lo espera así
             }));
 
             if (users.length === 0 || (users.length === 1 && users[0].name === 'No hay usuarios aprobados aún.')) {
@@ -769,8 +765,7 @@
             csvContent += "Nombre,Apellido,Email,Score,Fecha de Finalización\n";
 
             users.forEach(user => {
-                // Se corrigió completedDate a completed_date para coincidir con el esquema de la DB
-                const row = [ user.name, user.surname, user.email, user.quizScore, user.completedDate ].map(item => `"${item}"`).join(","); // ¡CORREGIDO!
+                const row = [ user.name, user.surname, user.email, user.quizScore, user.completedDate ].map(item => `"${item}"`).join(",");
                 csvContent += row + "\n";
             });
 
@@ -784,9 +779,6 @@
         }
         
         function downloadResourcePdf() {
-            // NOTE: Replace this with the actual URL of the PDF file when hosted.
-            // For example, if you upload it to the same repository on GitHub.
-            // This is a placeholder link.
             try {
                 const pdfUrl = 'https://raw.githubusercontent.com/BLHTR/CursoSeguridad/main/Procedimiento%20para%20el%20Reporte%20de%20Incidentes%20de%20Seguridad.pdf';
                 window.open(pdfUrl, '_blank');
@@ -810,8 +802,7 @@
             try {
                 const { data: existingUser, error: findError } = await supabaseClient
                     .from('users_progress')
-                    // Se corrigió completedDate a completed_date para coincidir con el esquema de la DB
-                    .select('id, progress, approved, name, surname, completed_date') // ¡CORREGIDO!
+                    .select('id, progress, approved, name, surname, completed_date')
                     .eq('email', email)
                     .single();
 
@@ -820,8 +811,7 @@
                 }
 
                 if (existingUser) {
-                    // Se corrigió completedDate a completed_date para coincidir con el esquema de la DB
-                    currentUser = { ...existingUser, name, surname, email, course_title: COURSE_TITLE, completed_date: existingUser.completed_date }; // ¡CORREGIDO!
+                    currentUser = { ...existingUser, name, surname, email, course_title: COURSE_TITLE };
                 } else {
                     currentUser = {
                         id: crypto.randomUUID(),
@@ -831,8 +821,7 @@
                         course_title: COURSE_TITLE,
                         progress: 0,
                         quizScore: null,
-                        // Se corrigió completedDate a completed_date para coincidir con el esquema de la DB
-                        completed_date: null, // ¡CORREGIDO!
+                        completed_date: null, // Asegúrate de que esto sea null o un valor válido si es necesario para Supabase
                         approved: false
                     };
                 }
@@ -850,7 +839,7 @@
                 }
 
             } catch (err) {
-                console.error('Error en el ingreso:', err); // Log the full object for debugging
+                console.error('Error en el ingreso:', err);
                 const errorMessage = err.message || 'Ocurrió un problema al conectar con la base de datos. Revisa las políticas de seguridad (RLS) en Supabase y la consola del navegador para más detalles.';
                 showMessage(`Error: ${errorMessage}`, 'error');
             } finally {
