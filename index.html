@@ -839,8 +839,9 @@
                 }
 
             } catch (err) {
-                console.error('Error en el ingreso:', err);
-                showMessage(`Error: ${err.message}.`, 'error');
+                console.error('Error en el ingreso:', err); // Log the full object for debugging
+                const errorMessage = err.message || 'Ocurrió un problema al conectar con la base de datos. Revisa las políticas de seguridad (RLS) en Supabase y la consola del navegador para más detalles.';
+                showMessage(`Error: ${errorMessage}`, 'error');
             } finally {
                 loginSubmitBtn.disabled = false;
                 loginSubmitBtn.querySelector('.btn-text').classList.remove('hidden');
