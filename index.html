@@ -419,7 +419,7 @@
                     course_title: user.course_title,
                     progress: user.progress || 0,
                     quiz_score: user.quizScore || null,
-                    completed_date: user.completedDate || null,
+                    completed_date: user.complete_date || null,
                     approved: user.approved || false
                 }, { onConflict: 'id' });
 
@@ -614,7 +614,7 @@
             
             if (currentUser) {
                 currentUser.quizScore = score;
-                currentUser.completedDate = new Date().toLocaleDateString('es-AR');
+                currentUser.completed_date = new Date().toLocaleDateString('es-AR');
                 currentUser.approved = score >= 80;
                 await saveUserProgressToSupabase(currentUser);
             }
@@ -678,7 +678,7 @@
         function updateDiplomaContent() {
              if (currentUser) {
                 diplomaParticipantName.textContent = `${currentUser.name || ''} ${currentUser.surname || ''}`.trim();
-                diplomaDate.textContent = currentUser.completedDate;
+                diplomaDate.textContent = currentUser.completed_date;
             }
         }
 
