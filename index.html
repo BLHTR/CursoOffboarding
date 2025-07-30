@@ -312,10 +312,8 @@
 
     <script>
         // Configuración de Supabase
-        const SUPABASE_URL = 'https://zaxyokejvwupwmbhenso.supabase.co'; // La URL parece correcta.
-        // ¡CORRECCIÓN CRÍTICA!: Se eliminó el punto y coma dentro de la cadena de la clave.
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpheHlva2Vqdnd1cHdtYmhlbnNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI4NzMwNDYsImV4cCI6MjA2ODQ0OTA0Nn0.boNwgjYadjo6deO_YfKbLCGt0ug4H012D2KuhX0WZB8'; // ¡CORREGIDO!
-        // Se asegura que no haya espacios extra al pasar la clave al cliente de Supabase.
+        const SUPABASE_URL = 'https://zaxyokejvwupwmbhenso.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpheHlva2Vqdnd1cHdtYmhlbnNvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI4NzMwNDYsImV4cCI6MjA2ODQ0OTA0Nn0.boNwgjYadjo6deO_YfKbLCGt0ug4H012D2KuhX0WZB8';
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
         const COURSE_TITLE = "Procedimiento de Offboarding para Consultores";
@@ -338,7 +336,9 @@
         const courseDurationEstimate = document.getElementById('course-duration-estimate');
         const chapterNumberDisplay = document.getElementById('chapter-number');
         const progressBar = document.getElementById('progress-bar');
-        const chapterTitleDisplay = document = document.getElementById('chapter-title'); // ¡Posible typo aquí! Corregido en la versión enviada
+        // ¡CORRECCIÓN! Posible typo: document = document.getElementById('chapter-title')
+        // Debería ser: const chapterTitleDisplay = document.getElementById('chapter-title');
+        const chapterTitleDisplay = document.getElementById('chapter-title'); // ¡CORREGIDO!
         const chapterContentDisplay = document.getElementById('chapter-content');
         const listenBtn = document.getElementById('listen-btn');
         const nextBtn = document.getElementById('next-btn');
@@ -423,7 +423,7 @@
                     quiz_score: user.quizScore || null,
                     completed_date: user.completed_date || null,
                     approved: user.approved || false
-                }, { onConflict: 'id' });
+                }, { onConflict: 'id' }); // onConflict: 'id' es válido si el id es la PK para este registro de progreso
 
             if (error) {
                 console.error('Error guardando progreso:', error.message);
@@ -434,6 +434,9 @@
             }
         }
 
+        // ¡MODIFICADO! Esta función ahora no se usa en initializeApp directamente,
+        // la lógica se movió para buscar por email y course_title.
+        // Se mantiene por si se usa en otro lugar, pero su llamado ha sido ajustado.
         async function loadUserProgressFromSupabase(userId) {
             const { data, error } = await supabaseClient
                 .from('users_progress')
@@ -441,9 +444,9 @@
                 .eq('id', userId)
                 .single();
 
-            if (error && error.code !== 'PGRST116') {
-                console.error('Error cargando progreso:', error.message);
-                showMessage('Error cargando progreso.', 'error');
+            if (error && error.code !== 'PGRST116') { // PGRST116 = No row found
+                console.error('Error cargando progreso por userId:', error.message);
+                // No mostrar mensaje de error si no se encuentra la fila (es un comportamiento esperado)
                 return null;
             }
             return data;
@@ -574,8 +577,7 @@
 
             document.querySelectorAll('.quiz-option').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    // ¡CORRECCIÓN! data-answer-index debe usarse con camelCase en JS si en HTML es kebab-case
-                    const selectedIndex = parseInt(e.currentTarget.dataset.answerIndex); // ¡CORREGIDO!
+                    const selectedIndex = parseInt(e.currentTarget.dataset.answerIndex);
                     userAnswers[currentQuestionIndex] = selectedIndex;
                     document.querySelectorAll('.quiz-option').forEach(b => b.classList.remove('selected'));
                     e.currentTarget.classList.add('selected');
@@ -654,24 +656,58 @@
                 showScreen('admin');
                 loadApprovedUsers();
             } else {
-                const storedUserId = localStorage.getItem('blatorh_course_userId');
-                if (storedUserId) {
-                    const userDataFromDB = await loadUserProgressFromSupabase(storedUserId);
-                    if (userDataFromDB) {
-                        currentUser = { ...userDataFromDB, completed_date: userDataFromDB.completed_date };
-                        if (currentUser.approved) {
-                            showScreen('diploma');
-                            updateDiplomaContent();
-                        } else {
-                            showScreen('course');
-                            currentChapterIndex = currentUser.progress || 0;
-                            loadChapter();
+                // ¡MODIFICADO! Intentar cargar el último email y course_title usados desde localStorage
+                const storedEmail = localStorage.getItem('blatorh_course_email'); // ¡NUEVO!
+                const storedCourseTitle = localStorage.getItem('blatorh_course_title'); // ¡NUEVO!
+
+                // Si encontramos tanto el email como el course_title en localStorage, intentamos cargar el progreso
+                if (storedEmail && storedCourseTitle === COURSE_TITLE) { // ¡MODIFICADO! Verificar si es el mismo curso
+                    try {
+                        const { data: userDataFromDB, error: loadError } = await supabaseClient
+                            .from('users_progress')
+                            .select('*')
+                            .eq('email', storedEmail) // ¡MODIFICADO! Buscar por email
+                            .eq('course_title', COURSE_TITLE) // ¡MODIFICADO! Y por el título del curso actual
+                            .single();
+
+                        if (loadError && loadError.code !== 'PGRST116') { // PGRST116 = No row found
+                            throw loadError;
                         }
-                    } else {
-                        localStorage.removeItem('blatorh_course_userId');
+                        
+                        if (userDataFromDB) {
+                            currentUser = { ...userDataFromDB };
+                            // Precargar los campos del formulario con los datos cargados
+                            nameInput.value = currentUser.name || ''; // ¡NUEVO!
+                            surnameInput.value = currentUser.surname || ''; // ¡NUEVO!
+                            emailInput.value = currentUser.email || ''; // ¡NUEVO!
+
+                            if (currentUser.approved) {
+                                showScreen('diploma');
+                                updateDiplomaContent();
+                            } else {
+                                showScreen('course');
+                                currentChapterIndex = currentUser.progress || 0;
+                                loadChapter();
+                            }
+                        } else {
+                            // Si no se encuentra un registro para el email Y el curso actual,
+                            // o si el 'storedCourseTitle' no es para el curso actual,
+                            // o si el storedUserId no existe para este curso (aunque ya no lo usamos para la búsqueda principal aquí)
+                            // limpia el localStorage y muestra la pantalla de login.
+                            localStorage.removeItem('blatorh_course_email'); // ¡MODIFICADO!
+                            localStorage.removeItem('blatorh_course_title'); // ¡MODIFICADO!
+                            showScreen('login');
+                        }
+                    } catch (err) {
+                        console.error('Error cargando progreso al inicio:', err);
+                        showMessage('Error al cargar tu progreso. Por favor, intenta iniciar sesión de nuevo.', 'error');
+                        localStorage.removeItem('blatorh_course_email'); // ¡MODIFICADO!
+                        localStorage.removeItem('blatorh_course_title'); // ¡MODIFICADO!
                         showScreen('login');
                     }
                 } else {
+                    // Si no hay datos en localStorage para este curso, o es un curso diferente,
+                    // mostrar la pantalla de login.
                     showScreen('login');
                     courseDurationEstimate.textContent = `Duración: ${calculateCourseDuration()} min`;
                 }
@@ -696,7 +732,7 @@
                 const imgData = canvas.toDataURL('image/png');
                 const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [canvas.width, canvas.height] });
                 pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-                pdf.save(`Diploma_BlatoRH_${currentUser.name}_${currentUser.surname}.pdf`);
+                pdf.save(`Diploma_BlatoRH_${currentUser.name}_${currentUser.surname}_${COURSE_TITLE.replace(/\s/g, '_')}.pdf`); // ¡MODIFICADO! Nombre de archivo más específico
             } catch (error) {
                 showMessage('Error al generar el diploma en PDF.', 'error');
             } finally {
@@ -707,7 +743,9 @@
         
         async function restartCourse(fullRestart = true) {
              if (fullRestart) {
-                localStorage.removeItem('blatorh_course_userId');
+                // ¡MODIFICADO! Eliminar solo los datos de este curso del localStorage
+                localStorage.removeItem('blatorh_course_email');
+                localStorage.removeItem('blatorh_course_title');
                 currentUser = null;
                 window.location.reload();
              } else {
@@ -800,36 +838,55 @@
             const email = emailInput.value.trim();
 
             try {
+                // ¡MODIFICADO! Buscar usuario por email Y course_title
                 const { data: existingUser, error: findError } = await supabaseClient
                     .from('users_progress')
-                    .select('id, progress, approved, name, surname, completed_date')
+                    .select('id, progress, approved, name, surname, completed_date, quiz_score') // Asegúrate de obtener todos los campos necesarios
                     .eq('email', email)
+                    .eq('course_title', COURSE_TITLE) // ¡CLAVE! Filtrar por el título del curso actual
                     .single();
 
-                if (findError && findError.code !== 'PGRST116') {
-                    throw findError;
+                if (findError && findError.code !== 'PGRST116') { // PGRST116 = No row found (esto es esperado si no existe)
+                    throw findError; // Otros errores sí son problemáticos
                 }
 
                 if (existingUser) {
-                    currentUser = { ...existingUser, name, surname, email, course_title: COURSE_TITLE };
-                } else {
+                    // Si el usuario existe para ESTE curso, cargamos sus datos existentes
                     currentUser = {
-                        id: crypto.randomUUID(),
+                        ...existingUser,
+                        // Forzar la actualización de nombre y apellido si el usuario los cambia en el formulario
+                        name: name,
+                        surname: surname,
+                        email: email, // Asegurar que el email actual se use
+                        course_title: COURSE_TITLE // Asegurar que el título del curso sea el actual
+                    };
+                } else {
+                    // Si no existe un registro para ESTE usuario Y ESTE curso, creamos uno nuevo
+                    currentUser = {
+                        id: crypto.randomUUID(), // Generamos un nuevo ID UUID
                         name: name,
                         surname: surname,
                         email: email,
                         course_title: COURSE_TITLE,
                         progress: 0,
                         quizScore: null,
-                        completed_date: null, // Asegúrate de que esto sea null o un valor válido si es necesario para Supabase
+                        completed_date: null,
                         approved: false
                     };
                 }
 
+                // Guardar/Actualizar el progreso del usuario en Supabase
+                // onConflict: ['email', 'course_title'] es más robusto si quieres que el UPSERT sepa que esos campos son únicos.
+                // Sin embargo, como el 'id' es PK, 'onConflict: 'id'' está bien si el ID ya se maneja en el frontend de forma única por curso.
+                // Pero si hay conflictos lógicos, el `id` generará nuevos registros si la combinación email/course_title ya tiene un id diferente.
+                // Con la restricción UNIQUE en DB, esto es menos crítico, ya que la DB lo impedirá.
                 await saveUserProgressToSupabase(currentUser);
-                localStorage.setItem('blatorh_course_userId', currentUser.id);
 
-                if (currentUser.approved) {
+                // ¡MODIFICADO! Almacenar email y course_title en localStorage en lugar de solo userId
+                localStorage.setItem('blatorh_course_email', currentUser.email);
+                localStorage.setItem('blatorh_course_title', currentUser.course_title); // ¡NUEVO!
+
+                if (currentUser.approved && currentUser.course_title === COURSE_TITLE) { // ¡MODIFICADO! Doble check para el diploma
                     showScreen('diploma');
                     updateDiplomaContent();
                 } else {
@@ -840,8 +897,14 @@
 
             } catch (err) {
                 console.error('Error en el ingreso:', err);
-                const errorMessage = err.message || 'Ocurrió un problema al conectar con la base de datos. Revisa las políticas de seguridad (RLS) en Supabase y la consola del navegador para más detalles.';
-                showMessage(`Error: ${errorMessage}`, 'error');
+                // Si el error es una violación de restricción única (por ejemplo, si se intenta insertar un duplicado de email/course_title
+                // que no fue capturado por la lógica existingUser por algún motivo), mostrar un mensaje más específico.
+                const errorMessage = err.message || 'Ocurrió un problema al conectar con la base de datos. Revisa las políticas de seguridad (RLS) en Supabase o la consola del navegador para más detalles.';
+                if (err.code === '23505') { // Código de error SQL para violación de restricción única
+                     showMessage(`Error: Ya existe un registro para este email en este curso.`, 'error');
+                } else {
+                    showMessage(`Error: ${errorMessage}`, 'error');
+                }
             } finally {
                 loginSubmitBtn.disabled = false;
                 loginSubmitBtn.querySelector('.btn-text').classList.remove('hidden');
