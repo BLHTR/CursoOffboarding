@@ -520,22 +520,30 @@
             window.speechSynthesis.speak(utterance);
         }
 
+
         function handleListen() {
             if (autoPlayTimeout) clearTimeout(autoPlayTimeout);
-            
-            if (window.speechSynthesis.speaking) {
-                wasManuallyStopped = true;
-                speechQueue = [];
-                window.speechSynthesis.cancel();
+
+            // Si se está reproduciendo, lo pausamos
+            if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+                window.speechSynthesis.pause();
+                listenBtn.textContent = "Escuchar Audio";
                 return;
             }
-            
-            wasManuallyStopped = false;
+
+            // Si estaba pausado, reanudamos donde quedó
+            if (window.speechSynthesis.paused) {
+                window.speechSynthesis.resume();
+                listenBtn.textContent = "Detener Audio";
+                return;
+            }
+
+            // Si no se ha iniciado la narración para este capítulo, la arrancamos
             listenBtn.textContent = "Detener Audio";
-            
+
             speechQueue = [];
             const elementsToRead = [chapterTitleDisplay, ...chapterContentDisplay.children];
-            
+
             elementsToRead.forEach(element => {
                 const text = element.textContent.trim();
                 if (text) {
@@ -545,6 +553,7 @@
                         if (trimmedSentence) {
                             const utterance = new SpeechSynthesisUtterance(trimmedSentence);
                             utterance.lang = 'es-ES';
+                            if (selectedVoice) utterance.voice = selectedVoice;
                             speechQueue.push({ utterance });
                         }
                     });
